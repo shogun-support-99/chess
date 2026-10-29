@@ -73,8 +73,9 @@ export function capturedPieces(game) {
   return captured;
 }
 
-export function gameStatus(game, playerColor) {
+export function gameStatus(game, playerColor, mode = 'computer') {
   if (game.isCheckmate()) {
+    if (mode === 'local') return { title: 'Checkmate', detail: `${game.turn() === 'w' ? 'Black' : 'White'} wins the game. Well played!`, finished: true };
     return game.turn() === playerColor
       ? { title: 'Checkmate', detail: 'Milo wins this one.', finished: true }
       : { title: 'Checkmate', detail: 'You won the game. Well played!', finished: true };
@@ -84,6 +85,11 @@ export function gameStatus(game, playerColor) {
   if (game.isInsufficientMaterial()) return { title: 'A draw', detail: 'There is not enough material to checkmate.', finished: true };
   if (game.isDrawByFiftyMoves()) return { title: 'A draw', detail: 'The fifty-move rule applies.', finished: true };
   if (game.isDraw()) return { title: 'A draw', detail: 'The game has ended in a draw.', finished: true };
+  if (mode === 'local') {
+    const side = game.turn() === 'w' ? 'White' : 'Black';
+    if (game.isCheck()) return { title: 'Check!', detail: `${side}’s king is in check.`, finished: false };
+    return { title: `${side} to move`, detail: `Player ${game.turn() === 'w' ? '1' : '2'}, it’s your turn.`, finished: false };
+  }
   const playerTurn = game.turn() === playerColor;
   if (game.isCheck()) {
     return { title: 'Check!', detail: playerTurn ? 'Your king is in check.' : 'Milo’s king is in check.', finished: false };

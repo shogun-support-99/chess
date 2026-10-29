@@ -196,21 +196,6 @@ button:focus-visible, a:focus-visible, input:focus-visible + span { outline: 2px
 .modal__header h2 { margin: 7px 0 0; font-family: 'Playfair Display', Georgia, serif; font-size: 29px; line-height: 1.15; font-weight: 400; }
 .modal__close { flex: none; min-width: 40px; min-height: 40px; }
 .modal__intro { margin: 13px 0 0; color: #c3cec0; font-size: 13px; line-height: 1.6; }
-.modal__notice { margin: 14px 0 0; padding: 10px 12px; border: 1px solid #796d4f; border-radius: 5px; background: #413d30; color: #ebdcb8; font-size: 11px; line-height: 1.5; }
-.option-group { min-width: 0; margin: 24px 0 0; padding: 0; border: 0; }
-.option-group legend { padding: 0; margin-bottom: 10px; color: #e1e9de; font-size: 12px; font-weight: 700; }
-.side-options { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-.side-option, .level-option { position: relative; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid #526052; border-radius: 6px; background: #2c382e; cursor: pointer; transition: border-color .18s ease, background-color .18s ease; }
-.side-option:hover, .level-option:hover { background: #354235; }
-.side-option.is-checked, .level-option.is-checked { border-color: #b9d4aa; background: #394c39; }
-.side-option input, .level-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.side-option:has(input:focus-visible), .level-option:has(input:focus-visible) { outline: 2px solid #e6d49f; outline-offset: 3px; }
-.side-option img { width: 38px; height: 38px; border-radius: 4px; background: #a9b99c; }
-.side-option strong, .level-option strong { display: block; color: #eff3eb; font-size: 12px; }
-.side-option small, .level-option small { display: block; margin-top: 4px; color: #b9c7b6; font-size: 10px; line-height: 1.3; }
-.option-check { flex: none; margin-left: auto; color: #d3e9c3; }
-.level-options { display: grid; gap: 7px; }
-.level-option { min-height: 52px; padding: 9px 12px; }
 .modal__submit { width: 100%; margin-top: 24px; min-height: 46px; }
 .guide-modal { width: 500px; }
 .guide-tip { display: flex; gap: 10px; margin-top: 18px; padding: 12px; border: 1px solid #536a50; border-radius: 6px; background: #344735; color: #d7e6d0; font-size: 11px; line-height: 1.55; }

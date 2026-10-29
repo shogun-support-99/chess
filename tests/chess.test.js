@@ -113,3 +113,12 @@ test('saved games cannot continue after a drawn position', () => {
   game.move('e4'); // chess.js permits continuing, but this app ends on repetition.
   assert.equal(gameFromMoves(movesForStorage(game)).fen(), new Chess().fen());
 });
+
+test('local two-player status tracks the side to move and the correct winner', () => {
+  const game = new Chess();
+  assert.equal(gameStatus(game, 'w', 'local').title, 'White to move');
+  game.move('f3');
+  assert.equal(gameStatus(game, 'w', 'local').title, 'Black to move');
+  for (const move of ['e5', 'g4', 'Qh4#']) game.move(move);
+  assert.deepEqual(gameStatus(game, 'w', 'local'), { title: 'Checkmate', detail: 'Black wins the game. Well played!', finished: true });
+});
