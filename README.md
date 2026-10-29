@@ -19,26 +19,33 @@
 
 ## Your board, your pace
 
-Play a relaxed game against **Milo**, a computer opponent that runs entirely in your browser. There is no account, download, or clock—just you, the board, and your next move.
+Sign in with a **device-only profile** or continue as a guest, then choose a relaxed game against **Milo**, the computer, or a pass-and-play game with a friend on the same device. There’s no download or clock—just the board and your next move.
 
 **[Open the chess game →](https://shogun-support-99.github.io/chess/)**
 
 | Made for a good game | Made for your screen |
 | --- | --- |
-| Three computer difficulty levels | Responsive desktop and mobile layout |
-| Play as white or black | Click, tap, drag, or use the keyboard |
-| Legal moves and special rules | Undo, flip the board, and review moves |
-| Checkmate and draw detection | Your game is saved locally in your browser |
+| Easy, Medium, and Hard computer opponents | Responsive desktop and mobile layout |
+| Local two-player pass-and-play | Click, tap, drag, or use the keyboard |
+| Play as white or black; legal moves and special rules | Undo, flip the board, and review moves |
+| Checkmate and draw detection | Separate locally saved games for each profile |
 
 Milo is a lightweight local opponent, not a tournament-strength chess engine. Chess rules are powered by [chess.js](https://github.com/jhlywa/chess.js).
 
+### About profiles and privacy
+
+Profiles, password hashes, and saved games are kept **only in this browser**. Passwords are salted and hashed, but these profiles **are not secure authentication**: anyone with access to the browser can inspect or change its storage and view saved games. Do not reuse a password from another service. There is no server, cloud sync, or password recovery; clearing browser data removes the profiles and games. A signed-in session lasts in the current browser tab until you sign out or close it, and guest games share a guest save. A game saved by an older version of the app is available by choosing **Continue as a guest**.
+
+Two-player mode means taking turns on **one device**; it is not online multiplayer.
+
 ## How to play
 
-1. **Choose a piece.** Select it to see its legal destinations.
-2. **Make your move.** Select a highlighted square, or drag the piece there.
-3. **Take your time.** Milo responds after your move. Use **Take back** to undo your move and its reply, or **Flip board** to change your view.
+1. **Sign in or create a local profile**, or choose **Continue as a guest**. A local profile can only be used in the browser where it was created.
+2. **Set up your game.** Choose the computer and an Easy, Medium, or Hard difficulty, or choose to play with a friend. Pick your side or board orientation, then start. If there is a saved game, you can resume it instead.
+3. **Make a move.** Select a piece to see its legal destinations, then select a highlighted square, or drag the piece there. White moves first.
+4. **Take your time.** In two-player mode, pass the device to the next player. **Take back** undoes one move in two-player mode, or your move and the computer’s reply against Milo. **Flip board** changes your view. Choose **New game** to return to setup.
 
-For a new game, choose your side and difficulty with **New game**. Castling, en passant, promotion, checkmate, stalemate, repetition, and other draw rules are supported.
+Castling, en passant, promotion, checkmate, stalemate, repetition, and other draw rules are supported.
 
 Using a keyboard? Tab to the board, navigate with the arrow keys, and press **Enter** or **Space** to select a square. The in-game guide explains how each piece moves.
 
@@ -51,33 +58,38 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. Other useful commands:
+Open the local URL printed by Vite. Local profile creation requires HTTPS or localhost for the Web Crypto API. Other useful commands:
 
 ```bash
-npm test                 # Run the chess-logic tests
-npm run build            # Create a production build
-npm run preview          # Preview the production build locally
+npm test                         # Run account, storage, and chess-logic tests
+npm run build -- --base=/chess/  # Build with the GitHub Pages base path
+npx playwright install chromium  # Install Chromium once for browser tests
+npm run test:e2e                 # Exercise the built app at /chess/
+npm run preview -- --base=/chess/ # Preview the production build locally
 ```
 
 ### Project map
 
 ```text
-src/App.jsx              Game screen and interaction state
-src/components/          Board and accessible dialogs
+src/App.jsx              Screen flow and game interaction state
+src/auth.js              Device-only profile and tab-session handling
+src/gameStorage.js       Per-profile game saves and legacy guest migration
+src/components/          Login, game setup, board, and accessible dialogs
 src/chess.js             Rules helpers and computer opponent
 src/engine.worker.js     Background computer-move calculation
 public/                  Chess pieces and artwork
-tests/                   Chess-logic regression tests
-.github/workflows/       GitHub Pages deployment
+tests/                   Account, storage, and chess-logic regression tests
+e2e/                     Browser, responsive, and accessibility tests
+.github/workflows/       Tests and GitHub Pages deployment
 ```
 
 The playable app starts at `src/main.jsx`. An earlier TypeScript site prototype and its plan are also preserved in the repository; they are not part of the current game build.
 
 ## Deployment
 
-The [GitHub Pages workflow](.github/workflows/deploy.yml) installs dependencies, runs the tests, builds with the `/chess/` base path, and publishes the site when changes are merged to `main`. It can also be run manually from the Actions tab.
+The [GitHub Pages workflow](.github/workflows/deploy.yml) installs dependencies, runs the unit and browser tests against the production `/chess/` base path, and publishes the site when changes are merged to `main`. It can also be run manually from the Actions tab.
 
-The live game is at **[shogun-support-99.github.io/chess](https://shogun-support-99.github.io/chess/)**. Your saved game and settings remain in your browser's local storage; clearing browser data removes them.
+The live game is at **[shogun-support-99.github.io/chess](https://shogun-support-99.github.io/chess/)**. All profiles and saved games stay in the browser on that device; clearing browser data removes them.
 
 ## Design & credits
 

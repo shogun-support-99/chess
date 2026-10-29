@@ -8,6 +8,7 @@ import '@fontsource/playfair-display/latin-400.css';
 import '@fontsource/playfair-display/latin-400-italic.css';
 import App from './App.jsx';
 import './styles.css';
+import './onboarding.css';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

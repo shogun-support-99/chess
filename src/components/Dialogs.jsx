@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Check, ChevronRight, Sparkles, X } from 'lucide-react';
-import { LEVELS } from '../chess.js';
+import { useEffect, useRef } from 'react';
+import { BookOpen, ChevronRight, Sparkles, X } from 'lucide-react';
 import { pieceImage } from './ChessBoard.jsx';
 
 function Modal({ title, eyebrow, onClose, children, className = '' }) {
@@ -25,44 +24,14 @@ function Modal({ title, eyebrow, onClose, children, className = '' }) {
   );
 }
 
-export function NewGameDialog({ currentSettings, hasMoves, onClose, onStart }) {
-  const [color, setColor] = useState(currentSettings.playerColor);
-  const [level, setLevel] = useState(currentSettings.level);
+export function ConfirmNewGameDialog({ onClose, onConfirm }) {
   return (
-    <Modal title="Set up your game" eyebrow="A FRESH START" onClose={onClose} className="new-game-modal">
-      <p className="modal__intro">Make yourself comfortable. How would you like to play?</p>
-      {hasMoves && <p className="modal__notice">Starting a new game will replace your current one.</p>}
-      <fieldset className="option-group">
-        <legend>Choose your side</legend>
-        <div className="side-options">
-          {[
-            { value: 'w', name: 'White', detail: 'Move first' },
-            { value: 'b', name: 'Black', detail: 'Move second' },
-          ].map((option) => (
-            <label className={`side-option${color === option.value ? ' is-checked' : ''}`} key={option.value}>
-              <input type="radio" name="color" value={option.value} checked={color === option.value} onChange={() => setColor(option.value)} />
-              <img src={pieceImage({ color: option.value, type: 'k' })} alt="" />
-              <span><strong>{option.name}</strong><small>{option.detail}</small></span>
-              {color === option.value && <Check size={16} className="option-check" />}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="option-group">
-        <legend>Choose your level</legend>
-        <div className="level-options">
-          {Object.entries(LEVELS).map(([value, option]) => (
-            <label className={`level-option${level === value ? ' is-checked' : ''}`} key={value}>
-              <input type="radio" name="level" value={value} checked={level === value} onChange={() => setLevel(value)} />
-              <span><strong>{option.name}</strong><small>{option.description}</small></span>
-              {level === value && <Check size={16} className="option-check" />}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <button className="button button--primary modal__submit" type="button" onClick={() => onStart({ playerColor: color, level })}>
-        Start playing <ChevronRight size={17} />
-      </button>
+    <Modal title="Start a new game?" eyebrow="A FRESH START" onClose={onClose} className="confirm-modal">
+      <p className="modal__intro">Your saved game will be replaced. You can resume it instead if you’re not quite finished.</p>
+      <div className="confirm-actions">
+        <button className="confirm-cancel" type="button" onClick={onClose}>Keep my game</button>
+        <button className="button button--primary" type="button" onClick={onConfirm}>Replace and play <ChevronRight size={17} /></button>
+      </div>
     </Modal>
   );
 }

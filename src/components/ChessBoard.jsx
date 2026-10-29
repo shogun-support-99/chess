@@ -7,7 +7,7 @@ export function pieceImage(piece) {
   return `${import.meta.env.BASE_URL}pieces/${piece.color}${piece.type.toUpperCase()}.svg`;
 }
 
-export default function ChessBoard({ game, selected, legalMoves, lastMove, flipped, playerColor, interactive, onSquare, onAttemptMove, onSelect }) {
+export default function ChessBoard({ game, selected, legalMoves, lastMove, flipped, playerColor, movableColor = playerColor, interactive, onSquare, onAttemptMove, onSelect }) {
   const refs = useRef({});
   const [focusedSquare, setFocusedSquare] = useState(playerColor === 'w' ? 'e2' : 'e7');
   useEffect(() => setFocusedSquare(playerColor === 'w' ? 'e2' : 'e7'), [playerColor]);
@@ -47,7 +47,7 @@ export default function ChessBoard({ game, selected, legalMoves, lastMove, flipp
               const isSelected = selected === square;
               const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
               const isChecked = checkingKing === square;
-              const canDrag = Boolean(interactive && piece?.color === playerColor);
+              const canDrag = Boolean(interactive && piece?.color === movableColor);
               const visibleCoordinates = [columnIndex === 0 ? rank : '', rowIndex === 7 ? file : ''].filter(Boolean).join('');
               const description = [
                 square,

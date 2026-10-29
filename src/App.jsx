@@ -3,32 +3,17 @@ import { Chess } from 'chess.js';
 import {
   ArrowLeftRight, ArrowRight, BookOpen, CircleHelp, Clock3,
   CornerDownLeft, Grid2X2, Lightbulb, MousePointer2, Plus, RotateCcw, Sparkles,
-  UserRound, Volume2, VolumeX,
+  LogOut, UserRound, UsersRound, Volume2, VolumeX,
 } from 'lucide-react';
-import { capturedPieces, chooseComputerMove, copyGame, gameFromMoves, gameStatus, LEVELS, movesForStorage, PIECE_NAMES } from './chess.js';
+import { capturedPieces, chooseComputerMove, copyGame, gameStatus, LEVELS, movesForStorage, PIECE_NAMES } from './chess.js';
 import ChessBoard, { pieceImage } from './components/ChessBoard.jsx';
-import { GuideDialog, NewGameDialog, PromotionDialog } from './components/Dialogs.jsx';
+import { GuideDialog, PromotionDialog } from './components/Dialogs.jsx';
+import AuthScreen from './components/AuthScreen.jsx';
+import SetupScreen from './components/SetupScreen.jsx';
+import { clearSession, restoreSession, saveSession } from './auth.js';
+import { loadSavedGame, normalizeSettings, saveGame } from './gameStorage.js';
 
-const STORAGE_KEY = 'the-chess-club-game-v1';
-const DEFAULT_SETTINGS = { playerColor: 'w', level: 'medium' };
 const CLUB_IMAGE = `${import.meta.env.BASE_URL}images/knight-club.webp`;
-
-function loadSavedGame() {
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
-    if (!saved || typeof saved !== 'object') throw new Error('No saved game');
-    const playerColor = saved.settings?.playerColor === 'b' ? 'b' : 'w';
-    const level = Object.hasOwn(LEVELS, saved.settings?.level) ? saved.settings.level : 'medium';
-    return {
-      game: gameFromMoves(saved.moves),
-      settings: { playerColor, level },
-      flipped: typeof saved.flipped === 'boolean' ? saved.flipped : playerColor === 'b',
-      sound: saved.sound === true,
-    };
-  } catch {
-    return { game: new Chess(), settings: DEFAULT_SETTINGS, flipped: false, sound: false };
-  }
-}
 
 function Sidebar({ onNewGame, onFlip, onUndo, canUndo, onGuide }) {
   return (
@@ -69,23 +54,26 @@ function Sidebar({ onNewGame, onFlip, onUndo, canUndo, onGuide }) {
   );
 }
 
-function PlayerRow({ computer, color, level, active, captured, finished }) {
+function PlayerRow({ computer, color, level, mode, active, captured, finished }) {
+  const local = mode === 'local';
+  const name = local ? `Player ${color === 'w' ? '1' : '2'}` : (computer ? 'Milo' : 'You');
+  const sub = computer && !local ? `${LEVELS[level].name} · Computer` : `${color === 'w' ? 'White' : 'Black'} pieces`;
   return (
     <div className={`player-row${active && !finished ? ' player-row--active' : ''}`}>
       <div className={`player-avatar${computer ? ' player-avatar--computer' : ' player-avatar--you'}`}>
         {computer ? <img src={CLUB_IMAGE} alt="" /> : <UserRound size={20} strokeWidth={1.8} />}
       </div>
       <div className="player-row__identity">
-        <div className="player-row__name">{computer ? 'Milo' : 'You'} {computer && <span className="bot-badge">BOT</span>}</div>
-        <div className="player-row__sub">{computer ? `${LEVELS[level].name} · Computer` : `${color === 'w' ? 'White' : 'Black'} pieces`}</div>
+        <div className="player-row__name">{name} {computer && <span className="bot-badge">BOT</span>}</div>
+        <div className="player-row__sub">{sub}</div>
       </div>
       {captured.length > 0 && (
-        <div className="captured-pieces" aria-label={`${computer ? 'Milo' : 'You'} captured ${captured.map((piece) => `${piece.color === 'w' ? 'white' : 'black'} ${PIECE_NAMES[piece.type]}`).join(', ')}`}>
+        <div className="captured-pieces" aria-label={`${name} captured ${captured.map((piece) => `${piece.color === 'w' ? 'white' : 'black'} ${PIECE_NAMES[piece.type]}`).join(', ')}`}>
           {captured.map((piece, index) => <img key={`${piece.type}-${index}`} src={pieceImage(piece)} alt="" />)}
         </div>
       )}
       <div className="player-row__turn">
-        {active && !finished ? <><span className="status-dot" /> {computer ? 'THINKING' : 'YOUR TURN'}</> : <span>{computer ? 'YOUR OPPONENT' : 'PLAYER'}</span>}
+        {active && !finished ? <><span className="status-dot" /> {local ? 'TO MOVE' : (computer ? 'THINKING' : 'YOUR TURN')}</> : <span>{local ? (color === 'w' ? 'WHITE' : 'BLACK') : (computer ? 'YOUR OPPONENT' : 'PLAYER')}</span>}
       </div>
     </div>
   );
@@ -93,6 +81,7 @@ function PlayerRow({ computer, color, level, active, captured, finished }) {
 
 function GamePanel({ game, settings, status, onUndo, canUndo, onFlip, onGuide }) {
   const history = game.history();
+  const local = settings.mode === 'local';
   const historyRef = useRef(null);
   const pairs = [];
   for (let i = 0; i < history.length; i += 2) pairs.push({ number: i / 2 + 1, white: history[i], black: history[i + 1] });
@@ -108,12 +97,12 @@ function GamePanel({ game, settings, status, onUndo, canUndo, onFlip, onGuide })
           <span className={`live-badge${status.finished ? ' live-badge--finished' : ''}`}><span /> {status.finished ? 'FINISHED' : 'IN PROGRESS'}</span>
         </div>
         <div className="opponent-strip">
-          <div className="opponent-strip__icon"><img src={CLUB_IMAGE} alt="" /></div>
-          <div><span className="opponent-strip__label">PLAYING AGAINST</span><strong>Milo <span>the bot</span></strong></div>
-          <span className="opponent-strip__level">{LEVELS[settings.level].name}</span>
+          <div className="opponent-strip__icon">{local ? <UsersRound size={22} aria-hidden="true" /> : <img src={CLUB_IMAGE} alt="" />}</div>
+          <div><span className="opponent-strip__label">{local ? 'PLAYING TOGETHER' : 'PLAYING AGAINST'}</span><strong>{local ? 'Two players' : <>Milo <span>the bot</span></>}</strong></div>
+          <span className="opponent-strip__level">{local ? 'LOCAL' : LEVELS[settings.level].name}</span>
         </div>
         <dl className="game-meta">
-          <div><dt>YOUR PIECES</dt><dd>{settings.playerColor === 'w' ? 'White' : 'Black'}</dd></div>
+          <div><dt>{local ? 'WHITE PIECES' : 'YOUR PIECES'}</dt><dd>{local ? 'Player 1' : (settings.playerColor === 'w' ? 'White' : 'Black')}</dd></div>
           <div><dt>TIME CONTROL</dt><dd><Clock3 size={14} /> No clock</dd></div>
         </dl>
         <div className="history-heading"><div><span className="eyebrow">THE STORY SO FAR</span><h3>Move history</h3></div><span>{history.length} {history.length === 1 ? 'move' : 'moves'}</span></div>
@@ -150,25 +139,34 @@ function GamePanel({ game, settings, status, onUndo, canUndo, onFlip, onGuide })
   );
 }
 
-export default function App() {
-  const [initial] = useState(loadSavedGame);
+function GameRoom({ profile, entry, storage, onSetup, onSignOut }) {
+  const [initial] = useState(() => {
+    if (entry.saved) return entry.saved;
+    const settings = normalizeSettings(entry.settings);
+    return { game: new Chess(), settings, flipped: settings.playerColor === 'b', sound: entry.sound === true };
+  });
   const [game, setGame] = useState(initial.game);
-  const [settings, setSettings] = useState(initial.settings);
+  const [settings] = useState(initial.settings);
   const [flipped, setFlipped] = useState(initial.flipped);
   const [sound, setSound] = useState(initial.sound);
   const [selected, setSelected] = useState(null);
   const [dialog, setDialog] = useState(null);
   const [promotion, setPromotion] = useState(null);
+  const [storageAvailable, setStorageAvailable] = useState(true);
   const soundRef = useRef(sound);
   const audioRef = useRef(null);
   soundRef.current = sound;
+  useEffect(() => () => {
+    if (audioRef.current) audioRef.current.close().catch(() => {});
+  }, []);
 
   const history = useMemo(() => game.history({ verbose: true }), [game]);
   const captured = useMemo(() => capturedPieces(game), [game]);
-  const status = useMemo(() => gameStatus(game, settings.playerColor), [game, settings.playerColor]);
+  const status = useMemo(() => gameStatus(game, settings.playerColor, settings.mode), [game, settings.playerColor, settings.mode]);
   const computerColor = settings.playerColor === 'w' ? 'b' : 'w';
-  const canPlay = !status.finished && game.turn() === settings.playerColor;
-  const canUndo = history.some((move) => move.color === settings.playerColor);
+  const local = settings.mode === 'local';
+  const canPlay = !status.finished && (local || game.turn() === settings.playerColor);
+  const canUndo = local ? history.length > 0 : history.some((move) => move.color === settings.playerColor);
   const legalMoves = useMemo(() => selected && canPlay ? game.moves({ square: selected, verbose: true }) : [], [game, selected, canPlay]);
   const lastMove = history.at(-1);
 
@@ -198,15 +196,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ moves: movesForStorage(game), settings, flipped, sound }));
-    } catch {
-      // Storage may be unavailable in private browsing.
-    }
-  }, [game, settings, flipped, sound]);
+    setStorageAvailable(saveGame(storage, profile, game, settings, flipped, sound));
+  }, [storage, profile, game, settings, flipped, sound]);
 
   useEffect(() => {
-    if (game.turn() === settings.playerColor || game.isGameOver() || dialog || promotion) return undefined;
+    if (local || game.turn() === settings.playerColor || game.isGameOver() || dialog || promotion) return undefined;
     let cancelled = false;
     let worker;
     function finish(move) {
@@ -240,14 +234,14 @@ export default function App() {
       window.clearTimeout(timer);
       worker?.terminate();
     };
-  }, [game, settings.playerColor, settings.level, dialog, promotion, playMoveSound]);
+  }, [game, settings.playerColor, settings.level, local, dialog, promotion, playMoveSound]);
 
   function attemptMove(from, to, promotionPiece) {
     if (!canPlay) return;
     const candidates = game.moves({ square: from, verbose: true }).filter((move) => move.to === to);
     if (!candidates.length) {
       const piece = game.get(to);
-      setSelected(piece?.color === settings.playerColor ? to : null);
+      setSelected(piece?.color === game.turn() ? to : null);
       return;
     }
     if (!promotionPiece && candidates.some((move) => move.promotion)) {
@@ -279,30 +273,24 @@ export default function App() {
       return;
     }
     const piece = game.get(square);
-    setSelected(piece?.color === settings.playerColor ? square : null);
+    setSelected(piece?.color === game.turn() ? square : null);
   }
 
   function undo() {
     if (!canUndo) return;
     const next = copyGame(game);
-    let undone;
-    do { undone = next.undo(); } while (undone && undone.color !== settings.playerColor);
+    if (local) next.undo();
+    else {
+      let undone;
+      do { undone = next.undo(); } while (undone && undone.color !== settings.playerColor);
+    }
     setSelected(null);
     setPromotion(null);
     setGame(next);
   }
 
-  function startNewGame(nextSettings) {
-    setGame(new Chess());
-    setSettings(nextSettings);
-    setFlipped(nextSettings.playerColor === 'b');
-    setSelected(null);
-    setPromotion(null);
-    setDialog(null);
-  }
-
   const flip = () => setFlipped((value) => !value);
-  const openNewGame = () => setDialog('new');
+  const openNewGame = () => onSetup();
   const openGuide = () => setDialog('guide');
 
   return (
@@ -313,6 +301,7 @@ export default function App() {
           <div className="page-header__top">
             <div className="breadcrumbs"><span className="breadcrumbs__dot" /> THE PLAYING ROOM <span className="breadcrumbs__slash">/</span> <span>CASUAL GAME</span></div>
             <div className="header-actions">
+              <button className="icon-button account-signout" type="button" aria-label="Sign out" title={`Sign out ${profile.displayName}`} onClick={onSignOut}><LogOut size={17} /></button>
               <button className="icon-button sound-button" type="button" aria-label={sound ? 'Mute game sounds' : 'Turn on game sounds'} aria-pressed={sound} title={sound ? 'Mute game sounds' : 'Turn on game sounds'} onClick={() => setSound((value) => !value)}>
                 {sound ? <Volume2 size={18} /> : <VolumeX size={18} />}
               </button>
@@ -320,17 +309,18 @@ export default function App() {
             </div>
           </div>
           <div className="page-heading">
-            <div><span className="page-heading__kicker">A LITTLE TIME WELL PLAYED <span>✳</span></span><h1>Make your move<span>.</span></h1><p>Settle in, take your time, and enjoy the game.</p></div>
+            <div><span className="page-heading__kicker">A LITTLE TIME WELL PLAYED <span>✳</span></span><h1 tabIndex={-1}>Make your move<span>.</span></h1><p>Settle in, take your time, and enjoy the game.</p></div>
             <div className="heading-emblem" aria-hidden="true"><span>THE</span><strong>CHESS<br />CLUB</strong><span>✳ &nbsp; EST. TODAY</span></div>
           </div>
         </header>
+        {!storageAvailable && <p className="storage-warning" role="alert">This browser isn’t allowing saves. You can play, but your game will be lost when you leave this screen.</p>}
         <div className="game-layout">
           <section className="game-area" aria-label="Your chess game">
             <div className="game-area__topline"><span>THE BOARD <span className="topline-slash">/</span> <strong>FRIENDLY GAME</strong></span><span><span className="tiny-dot" /> NO CLOCK, NO PRESSURE</span></div>
             <div className="board-wrap">
-              <PlayerRow computer={(flipped ? 'w' : 'b') === computerColor} color={flipped ? 'w' : 'b'} level={settings.level} active={game.turn() === (flipped ? 'w' : 'b')} captured={captured[flipped ? 'w' : 'b']} finished={status.finished} />
-              <ChessBoard game={game} selected={selected} legalMoves={legalMoves} lastMove={lastMove} flipped={flipped} playerColor={settings.playerColor} interactive={canPlay} onSquare={handleSquare} onAttemptMove={attemptMove} onSelect={setSelected} />
-              <PlayerRow computer={(flipped ? 'b' : 'w') === computerColor} color={flipped ? 'b' : 'w'} level={settings.level} active={game.turn() === (flipped ? 'b' : 'w')} captured={captured[flipped ? 'b' : 'w']} finished={status.finished} />
+              <PlayerRow computer={!local && (flipped ? 'w' : 'b') === computerColor} color={flipped ? 'w' : 'b'} level={settings.level} mode={settings.mode} active={game.turn() === (flipped ? 'w' : 'b')} captured={captured[flipped ? 'w' : 'b']} finished={status.finished} />
+              <ChessBoard game={game} selected={selected} legalMoves={legalMoves} lastMove={lastMove} flipped={flipped} playerColor={settings.playerColor} movableColor={local ? game.turn() : settings.playerColor} interactive={canPlay} onSquare={handleSquare} onAttemptMove={attemptMove} onSelect={setSelected} />
+              <PlayerRow computer={!local && (flipped ? 'b' : 'w') === computerColor} color={flipped ? 'b' : 'w'} level={settings.level} mode={settings.mode} active={game.turn() === (flipped ? 'b' : 'w')} captured={captured[flipped ? 'b' : 'w']} finished={status.finished} />
               <div className="board-caption" id="board-instructions"><span><MousePointer2 size={14} /> Select a piece to see where it can move</span><button type="button" onClick={openGuide}><CircleHelp size={15} /> Need a hand?</button></div>
             </div>
             <div className={`game-status${status.finished || game.isCheck() ? ' game-status--notice' : ''}`} role="status" aria-live="polite"><span className="status-dot" /><strong>{status.title}</strong><span>{status.detail}</span></div>
@@ -339,9 +329,102 @@ export default function App() {
         </div>
         <footer className="mobile-footer">THE CHESS CLUB <span>✳</span> A LITTLE TIME WELL PLAYED</footer>
       </main>
-      {dialog === 'new' && <NewGameDialog currentSettings={settings} hasMoves={history.length > 0} onClose={() => setDialog(null)} onStart={startNewGame} />}
       {dialog === 'guide' && <GuideDialog onClose={() => setDialog(null)} />}
-      {promotion && <PromotionDialog color={settings.playerColor} onClose={() => setPromotion(null)} onChoose={(piece) => attemptMove(promotion.from, promotion.to, piece)} />}
+      {promotion && <PromotionDialog color={game.turn()} onClose={() => setPromotion(null)} onChoose={(piece) => attemptMove(promotion.from, promotion.to, piece)} />}
     </div>
   );
+}
+
+
+// Web storage is optional (for example, it may be blocked in private mode).
+// Keeping a stable object lets guest play work even if a browser denies access.
+const unavailableStorage = {
+  getItem() { throw new Error('Storage unavailable'); },
+  setItem() { throw new Error('Storage unavailable'); },
+  removeItem() { throw new Error('Storage unavailable'); },
+};
+function browserStorage(name) {
+  try { return window[name] || unavailableStorage; } catch { return unavailableStorage; }
+}
+
+export default function App() {
+  const [storage] = useState(() => browserStorage('localStorage'));
+  const [sessionStorage] = useState(() => browserStorage('sessionStorage'));
+  const [initialProfile] = useState(() => restoreSession(storage, sessionStorage));
+  const [profile, setProfile] = useState(initialProfile);
+  const [screen, setScreen] = useState(initialProfile ? 'setup' : 'login');
+  const [savedGame, setSavedGame] = useState(() => initialProfile ? loadSavedGame(storage, initialProfile) : null);
+  const [entry, setEntry] = useState(null);
+  const profileRef = useRef(profile);
+  profileRef.current = profile;
+
+  // Give the browser back/forward buttons meaningful setup and board states.
+  useEffect(() => {
+    window.history.replaceState({ ...window.history.state, chessScreen: initialProfile ? 'setup' : 'login' }, '');
+    function onPopState(event) {
+      const target = event.state?.chessScreen;
+      if (!['login', 'setup', 'game'].includes(target)) return;
+      const currentProfile = profileRef.current;
+      if (!currentProfile) {
+        setEntry(null);
+        setSavedGame(null);
+        setScreen('login');
+        return;
+      }
+      const saved = loadSavedGame(storage, currentProfile);
+      if (target === 'game' && saved) {
+        setEntry({ saved });
+        setScreen('game');
+      } else {
+        setSavedGame(saved);
+        setEntry(null);
+        setScreen('setup');
+      }
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [initialProfile, storage]);
+
+  useEffect(() => {
+    document.title = `${screen === 'login' ? 'Sign in' : screen === 'setup' ? 'Game setup' : 'Playing room'} — The Chess Club`;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.querySelector('main h1')?.focus({ preventScroll: true });
+  }, [screen]);
+
+  function authenticate(nextProfile) {
+    saveSession(sessionStorage, nextProfile);
+    setProfile(nextProfile);
+    setSavedGame(loadSavedGame(storage, nextProfile));
+    window.history.replaceState({ ...window.history.state, chessScreen: 'setup' }, '');
+    setScreen('setup');
+  }
+  function signOut() {
+    clearSession(sessionStorage);
+    setEntry(null);
+    setProfile(null);
+    setSavedGame(null);
+    window.history.replaceState({ ...window.history.state, chessScreen: 'login' }, '');
+    setScreen('login');
+  }
+  function goToSetup() {
+    setSavedGame(loadSavedGame(storage, profile));
+    setEntry(null);
+    window.history.pushState({ ...window.history.state, chessScreen: 'setup' }, '');
+    setScreen('setup');
+  }
+  function startGame(settings) {
+    setEntry({ settings, sound: savedGame?.sound });
+    window.history.pushState({ ...window.history.state, chessScreen: 'game' }, '');
+    setScreen('game');
+  }
+  function resumeGame() {
+    if (!savedGame) return;
+    setEntry({ saved: savedGame });
+    window.history.pushState({ ...window.history.state, chessScreen: 'game' }, '');
+    setScreen('game');
+  }
+
+  if (!profile || screen === 'login') return <AuthScreen storage={storage} onAuthenticated={authenticate} />;
+  if (screen === 'setup') return <SetupScreen profile={profile} savedGame={savedGame} onStart={startGame} onResume={resumeGame} onSignOut={signOut} />;
+  return <GameRoom profile={profile} entry={entry} storage={storage} onSetup={goToSetup} onSignOut={signOut} />;
 }

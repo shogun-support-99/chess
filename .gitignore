@@ -29,3 +29,7 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Browser test output
+playwright-report/
+test-results/
