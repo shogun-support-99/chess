@@ -4,7 +4,7 @@ import { PIECE_NAMES } from '../chess.js';
 const FILES = 'abcdefgh';
 
 export function pieceImage(piece) {
-  return `/pieces/${piece.color}${piece.type.toUpperCase()}.svg`;
+  return `${import.meta.env.BASE_URL}pieces/${piece.color}${piece.type.toUpperCase()}.svg`;
 }
 
 export default function ChessBoard({ game, selected, legalMoves, lastMove, flipped, playerColor, interactive, onSquare, onAttemptMove, onSelect }) {

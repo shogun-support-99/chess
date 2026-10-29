@@ -11,6 +11,7 @@ import { GuideDialog, NewGameDialog, PromotionDialog } from './components/Dialog
 
 const STORAGE_KEY = 'the-chess-club-game-v1';
 const DEFAULT_SETTINGS = { playerColor: 'w', level: 'medium' };
+const CLUB_IMAGE = `${import.meta.env.BASE_URL}images/knight-club.webp`;
 
 function loadSavedGame() {
   try {
@@ -33,7 +34,7 @@ function Sidebar({ onNewGame, onFlip, onUndo, canUndo, onGuide }) {
   return (
     <aside className="sidebar" aria-label="Main navigation">
       <a className="brand" href="#game" aria-label="The Chess Club, go to game">
-        <span className="brand__mark"><img src="/pieces/bN.svg" alt="" /></span>
+        <span className="brand__mark"><img src={pieceImage({ color: 'b', type: 'n' })} alt="" /></span>
         <span className="brand__wordmark">THE CHESS <strong>CLUB<span>.</span></strong></span>
       </a>
       <div className="sidebar__rule" />
@@ -56,7 +57,7 @@ function Sidebar({ onNewGame, onFlip, onUndo, canUndo, onGuide }) {
       </nav>
       <div className="sidebar__bottom">
         <div className="club-card">
-          <img src="/images/knight-club.webp" alt="" />
+          <img src={CLUB_IMAGE} alt="" />
           <div className="club-card__content">
             <span>THE CHESS CLUB</span>
             <p>For the love<br /><em>of the game.</em></p>
@@ -72,7 +73,7 @@ function PlayerRow({ computer, color, level, active, captured, finished }) {
   return (
     <div className={`player-row${active && !finished ? ' player-row--active' : ''}`}>
       <div className={`player-avatar${computer ? ' player-avatar--computer' : ' player-avatar--you'}`}>
-        {computer ? <img src="/images/knight-club.webp" alt="" /> : <UserRound size={20} strokeWidth={1.8} />}
+        {computer ? <img src={CLUB_IMAGE} alt="" /> : <UserRound size={20} strokeWidth={1.8} />}
       </div>
       <div className="player-row__identity">
         <div className="player-row__name">{computer ? 'Milo' : 'You'} {computer && <span className="bot-badge">BOT</span>}</div>
@@ -107,7 +108,7 @@ function GamePanel({ game, settings, status, onUndo, canUndo, onFlip, onGuide })
           <span className={`live-badge${status.finished ? ' live-badge--finished' : ''}`}><span /> {status.finished ? 'FINISHED' : 'IN PROGRESS'}</span>
         </div>
         <div className="opponent-strip">
-          <div className="opponent-strip__icon"><img src="/images/knight-club.webp" alt="" /></div>
+          <div className="opponent-strip__icon"><img src={CLUB_IMAGE} alt="" /></div>
           <div><span className="opponent-strip__label">PLAYING AGAINST</span><strong>Milo <span>the bot</span></strong></div>
           <span className="opponent-strip__level">{LEVELS[settings.level].name}</span>
         </div>
